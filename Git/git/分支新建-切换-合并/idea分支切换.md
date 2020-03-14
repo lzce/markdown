@@ -1,0 +1,1 @@
+- idea切换分支：[idea check out切换分支时找不到需要的分支](https://blog.csdn.net/uotail/article/details/82053539)
