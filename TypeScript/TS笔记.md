@@ -23,6 +23,119 @@ npm i -g typescript
 安装好之后，全局会提供一个`tsc` 命令给我们使用!
 
 
+
+### VsCode TSlint插件
+
+
+
+## 环境搭建
+
+1、创建一个项目文件夹 npm init -y 初始化 仓库
+
+
+
+2、npm 全局安装 typescript tslint
+
+```shell
+$ npm i typescript  # 项目和本地都需要安装
+$ npm i tslint -D
+$ tsc --init  # 初始化一个 ts.config.json 配置文件
+```
+
+
+
+3、 在项目中安装webpack webpack-dev-server webpack-cli
+
+```shell
+# 安装为开发依赖
+$ npm i webpack webpack-cli webpack-dev-server -D 
+```
+
+
+
+4、在build 文件夹下配置webpack
+
+> **需要下载 ts-loader**
+>
+> 需要用到两个插件` clean-webpack-plugin `  编译时能够清理指定的文件夹
+>
+> 和 `html-webpack-plugin` 指定编译的模板
+
+```json
+const HtmlWebapackPlugin = require('html-webpack-plugin')
+const { CleanWebpackPlugin } = require('clean-webpack-plugin')
+
+module.export = {
+  entry: './src/index.ts',
+  output: {
+    filename: "main.js"
+  },
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/
+      }
+    ]
+  },
+  // 开发环境需要 source-map
+  devtool: process.env.NODE_ENV === 'production' ? false :'inline-source-map',
+  devServer: {
+    contentBase: './dist', // 本地开发时基于哪个文件夹作为根目录来运行的
+    stats: 'errors-only', // webpack 启动之后在控制台打印的信息， 我们大多关注错误信息， errors-only 只会打印错误的信息
+    compress: false, // 是否启动压缩
+    host: 'localhost',
+    port: 8089
+  },
+  plugins: [
+     new HtmlWebapackPlugin({
+        template: './src/template/index.html'
+     }),
+     new CleanWebpackPlugin({
+       cleanOnceBeforeBuildPatterns: ['./dist']
+     })
+  ]
+}
+```
+
+
+
+5、添加运行脚本命令
+
+> 需要下载工具 `cross-env`
+
+```json
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "cross-env NODE_ENV=development webpack-dev-server --config ./build/webpack.config.js"
+  },
+```
+
+
+
+
+
+在 项目的根目录下的 `tslint.json` 可以配置代码规范
+
+```js
+{
+    "rules": {
+        "quotemark": [false], // 不使用双引号
+         "semicolon": [false]
+    }
+}
+```
+
+
+
+
+
+
+
 ### 编写TS代码
 
 在变量写法上和flow类似, 变量后`:类型` 能够声明变量的类型
@@ -71,11 +184,15 @@ tsc -p ./tsconfig.json
 ## TS的数据类型
 
 ### number 类型
+
+TS中支持 二进制， 八进制 十六进制的复制
+
 ```ts
 // number 类型
 let num1: number = 1
 let num2: number = 2
-let num3!: number = 3  // num3 是数字类型并且非空 
+let num3!: number = 3  // num3 是数字类型并且非空
+num3 = 0x7b // 十六进制
 ```
 
 ### string类型
@@ -85,23 +202,51 @@ let str: string = '哈哈'
 let str2: string = `支持es6中的模板字符串${1}`
 ```
 
-### 布尔类型
+### boolean布尔类型
 ```ts
 // 布尔类型
 let flag1: boolean = true
 let flag2: boolean = false
 ```
 
-### 数组类型
+### Array数组类型
 ```ts
-// 只能存放数字类型的数组
+// 写法1 只能存放数字类型的数组
 let arr1: Array<number> = [1, 2]
+
+// 写法2  只能存放数字类型的数组
 let arr2: number[] = [4, 4]
-// 任意类型
+// 写法3  任意类型
 let arr4: any[] = [1, 'a', {a: 'a'}]
+
+// 联合类型， 数组中可以是不同类型
+let arr3: (string | number)[]
+arr3 = ['aa', 123]
 ```
 
+
+
+### 函数类型
+
+```ts
+// 定义函数的参数类型和返回值类型
+let fun1 = (x: number, y: string) => string
+// 实际的fun1 加上函数体
+fun1 = (arg1:number, arg2： string): string => {
+    return arg1 + arg2
+}
+```
+
+
+
+
+
 ### 元组
+
+和数组类型，不过和数组不同之处在于它是 **固定长度， 固定类型**
+
+在赋值 的时候必须一一对应
+
 ```ts
 let arr3: [number, string, string] = [1, '1', 'h']
 // arr3[1] = 1 报错
@@ -125,6 +270,9 @@ let unable: void = undefined
 ```
 ### null和undefined
 在TS中`null` 和 `undefined` 是两种类型,和 `void`相似, 他们本身的类型用处意义不大
+
+在js 中唯一两个既是值也是类型， 它也是其他类型的子类型
+
 ```ts
 // null 和 undefined
 let res1: null = null
@@ -145,7 +293,7 @@ let some2: any = {}
 
 变量也可能是`never` 类型, 当他们被永不为真的类型保护所约束时.
 
-`never` 类型时任何类型的子类型, 也可以赋值给任何类型. 然而, 没有类型是 `never` 的子类型或可以赋值给 `never` 类型 (除了 `never` 本身之外). 即使 `any` 也不可以赋值给 `never`
+`never` 类型**是任何类型的子类型**, 也可以赋值给任何类型. 然而, 没有类型是 `never` 的子类型或可以赋值给 `never` 类型 (除了 `never` 本身之外). 即使 `any` 也不可以赋值给 `never`
 
 下面是一些返回 `never` 类型的函数
 ```ts
@@ -188,7 +336,13 @@ enum Color {
   green,
   lime
 }
-let c: Color = Color.red
+console.log(Color.red) // 0 默认从 0 开始
+
+if (color === Color.red) {    
+}
+
+// 并且可以通过索引获取值
+Color[1] // green
 ```
 
 默认情况下, 从 `0` 开始为元素编号, 第一个是 0 第二个是 1 依次编号. 我们可以手动的指定成员的数值. 例如, 我们将上面的例子改成从 `1` 开始编号
@@ -222,9 +376,9 @@ let obj: object = {
 
 ### 类型断言
 
-有时候我们会遇到这样的情况, 我们比TypeScript更了解某个值的详细情况, 比如, 它的类型
+有时候我们会遇到这样的情况, 我们比TypeScript更了解某个值的详细情况, 比如, 它的类型 并且由于类型校验导致报错， 但实际逻辑并没有错， 那么我们就可以使用类型断言
 
-通过类型断言这种方式可以告诉编译器, "相信我, 我知道我在干什么". 
+通过类型断言这种方式可以告诉编译器, "相信我, 我知道我在干什么".  
 
 它只在编译时器作用, 对运行时没有影响
 
@@ -322,7 +476,7 @@ dog1.eat()
 - `public` : 公开的, 默认  所有人都可以访问
 - `private` : 私有的, 只能在当前类中访问
 - `protected` : 受保护的, 只能在当前类或者子类中访问
- 
+
 ```ts
 enum Color {
   red,
@@ -438,6 +592,9 @@ interface ajaxOptions {
 }
 
 function ajax(options: ajaxOptions) {}
+const ajax = (params: ajaxOptions) => {
+    
+}
 
 ajax({
   type: 'get',
@@ -466,6 +623,24 @@ interface axiosOptions {
 
 function axios(options: axiosOptions) {}
 ```
+
+### 非空属性
+
+无论是接口中还是 定义变量的时候， 我们都可以指定一个属性是可选，非空
+
+```ts
+interface axiosOptions {
+  url: string,
+  // 属性后加叹号即可
+  type！: string,
+  data！: object,
+  success(res: object): void
+}
+
+function axios(options: axiosOptions) {}
+```
+
+
 
 ### 只读属性
 
@@ -510,13 +685,45 @@ let point1: Point = {
 ```ts
 // 定义函数类型的接口
 interface sumInterface {
-  (x: number, y: number): any
+  (x: number, y: number): number
 }
+
+可以使用类型别名的方式
+type sumInterface = (x: number, y: number): number
 
 let getSum: sumInterface = function (x: number, y: number) {
   return x + y
 }
 ```
+
+
+
+```ts
+interface AddFunc {
+    (param1: string, param2: number): any
+}
+
+可以写成 =======> 类型别名
+type AddFunc  = {
+    (param1: string, param2: number): any
+}
+或者
+type AddFunc =  (param1: string, param2: number): any
+
+
+//  使用接口
+const fn1: AddFunc = (n1, n2) => {
+    return n1 + n2
+}
+```
+
+
+
+
+
+
+
+
 
 ### 类(class)类型的接口
 
@@ -548,7 +755,243 @@ XM.age
 XM.eat()
 ```
 
-
 ### 接口的继承
 
+和 类的继承一样 使用extends 关键字能够继承一个接口的值
+
+
+
+### 类型别名
+
+使用 type 可以替代 interface 写法不同
+
+```ts
+interface AddFun {
+    x: number;
+    y: number;
+}
+
+type AddFun = {
+    x: number;
+    y: number;
+}
+```
+
+
+
+## 泛型
+
+使用`any`类型会导致这个函数可以接收任何类型的`arg`参数，这样就丢失了一些信息：传入的类型与返回的类型应该是相同的。如果我们传入一个数字，我们只知道任何类型的值都有可能被返回
+
+```ts
+function identity(arg: number): number {
+    return arg;
+}
+
+function identity(arg: any): any {
+    return arg;
+}
+```
+
+因此，我们需要一种方法使返回值的类型与传入参数的类型是相同的。 这里，我们使用了 *类型变量*，它是一种特殊的变量，只用于表示类型而不是值
+
+我们把这个版本的`identity`函数叫做泛型，因为它可以适用于多个类型。 不同于使用 `any`，它不会丢失信息，像第一个例子那像保持准确性，传入数值类型并返回数值类型
+
+```ts
+function identity<T>(arg: T): T {
+    return arg;
+}
+```
+
+我们定义了泛型函数后，可以用两种方法使用。 第一种是，传入所有的参数，包含类型参数：
+
+```ts
+let output = identity<string>("myString");  // type of output will be 'string'
+```
+
+这里我们明确的指定了`T`是`string`类型，并做为一个参数传给函数，使用了`<>`括起来而不是`()`。
+
+第二种方法更普遍。利用了*类型推论* -- 即编译器会根据传入的参数自动地帮助我们确定T的类型：
+
+```ts
+let output = identity("myString");  // type of output will be 'string'
+```
+
+
+
+
+
+习惯上使用 大写字母 T 表示泛型变量
+
+```ts
+// 泛型 T 就是一个泛型，不是一个具体的类型
+const getArray = <T>(val: T, times: number = 5): T[] => {
+  // 返回一个 Times个元素， 以 val 填充
+  return new Array(times).fill(val)
+}
+getArray<string>('abc')
+```
+
+
+
+**二者等价**
+
+```ts
+interface getArray4 {
+  <T>(x: T, y: number): T[]
+}
+// 泛型变量提升到最外层
+interface getArray5<T> {
+  <T>(x: T, y: number): T[]
+}
+type getArray6 = <T>(x: T, y: number) => T[]
+```
+
+
+
+### 多个泛型变量的使用
+
+
+
+```ts
+// [T, U][] 就是元组 
+const getArray2 = <T, U>(param1: T, param2: U, count: number = 5): [T, U][] => {
+  return new Array(count).fill([param1, param2])
+}
+
+getArray2<number, string>(1, 'a', 3)
+```
+
+
+
+
+
+### 泛型约束
+
+由于泛型是没有固定类型， 有时候我们想让它在一些类型中固定
+
+例如 泛型 T 需要有length 属性， 那么就需要一个约束
+
+```ts
+// 需求， 数组中的元素需要有length 属性才行， 那么 对泛型变量 T 就要有个约束 
+interface TWithLength {
+  length: number
+}
+二者等价
+type TWithLength = {
+  length: number;
+}
+
+let getArray = <T extends TWithLength>(x: T, y: T, z: number = 3): T[] => {
+  return new Array(z).fill([x, y])
+}
+
+getArray('1', 'a')
+```
+
+
+
+ 需求2： 传入一个对象， 只能访问这次对象上有的属性的值
+
+keyof  T 能够返回 T 中所有的 key 属性 并组成一个数组返回
+
+```ts
+// K 继承 T 所有 key 属性 的数组
+const getProps = <T, K extends keyof T>(object: T, prop: K) => {
+  return object[prop]
+}
+let obj = {
+  a: 'a',
+  b: 'b'
+}
+getProps(obj, 'a')
+getProps(obj, 'c') // error
+```
+
+
+
+
+
+## 枚举
+
+枚举可以理解为一个字典， 有一组对应关系
+
+TS 支持数字枚举 和 字符串枚举 两种枚举方式
+
+
+
+### 数字枚举
+
+不指定开始的数字
+
+```ts
+enum Status {
+  Uploading,
+  Success,
+  Fail
+}
+
+console.log(Status.Uploading) // 0
+console.log(Status.Success) // 1
+console.log(Status.Fail) // 2
+```
+
+
+
+指定枚举
+
+```ts
+enum Status {
+  Uploading = 1,
+  Success = 3,
+  Fail = 5
+}
+
+console.log(Status.Uploading) // 1
+console.log(Status.Success) // 3
+console.log(Status.Fail) // 5
+
+enum Status {
+  上传中 = 0,
+  成功 = 1,
+  失败 = 404
+}
+
+console.log(Status.上传中) // 1
+console.log(Status.成功) // 3
+console.log(Status.失败) // 5
+```
+
+
+
+
+
+使用表达式
+
+> 使用表达式后，后面的属性必须指定初始值， 因为TS无法递增了
+
+```ts
+// 使用表达式
+const getType = () => 2
+
+enum Status2 {
+  Success = 1,
+  Fail = getType(),
+  loading = 2
+}
+```
+
+
+
+
+
+### 字符串枚举
+
+```ts
+// 字符串枚举
+enum Message {
+  error = '这是一个error',
+  success = '这是成功'
+}
+```
 
